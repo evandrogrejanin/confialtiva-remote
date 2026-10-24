@@ -17,6 +17,11 @@ env:
   VCPKG_COMMIT_ID: "9e593bb18ea69cc5095e012465dcd675a822ed0d"
   VERSION: "1.5.1"
   APP_EXE: "ConfialtivaRemote"
+  # Company server, from Settings > Secrets and variables > Actions > Variables.
+  # Left empty, the client uses the public RustDesk servers.
+  CONFIALTIVA_RENDEZVOUS_SERVER: ${{ vars.CONFIALTIVA_RENDEZVOUS_SERVER }}
+  CONFIALTIVA_RELAY_SERVER: ${{ vars.CONFIALTIVA_RELAY_SERVER }}
+  CONFIALTIVA_SERVER_KEY: ${{ vars.CONFIALTIVA_SERVER_KEY }}
 
 permissions:
   contents: write
@@ -24,6 +29,37 @@ permissions:
 jobs:
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
+
+  generate-icons:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Render icons and logos from branding/*.svg
+        run: |
+          pip3 install cairosvg pillow
+          python3 branding/generate_icons.py
+
+      - name: Upload branding assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: branding-assets
+          path: |
+            res/icon.ico
+            res/tray-icon.ico
+            res/icon.png
+            res/32x32.png
+            res/64x64.png
+            res/128x128.png
+            res/128x128@2x.png
+            flutter/windows/runner/resources/app_icon.ico
+            flutter/assets/icon.ico
+            flutter/assets/icon.png
+            flutter/assets/icon.svg
+            flutter/assets/logo.png
+            flutter/assets/logo_light.png
+            flutter/assets/logo_dark.png
 
   build-RustDeskTempTopMostWindow:
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
@@ -35,7 +71,7 @@ jobs:
       target_version: Windows10
 
   build-windows-x64:
-    needs: [build-RustDeskTempTopMostWindow, generate-bridge]
+    needs: [build-RustDeskTempTopMostWindow, generate-bridge, generate-icons]
     runs-on: windows-2022
     steps:
       - name: Export GitHub Actions cache environment variables
@@ -55,6 +91,23 @@ jobs:
         with:
           name: bridge-artifact
           path: ./
+
+      - name: Restore branding assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: branding-assets
+          path: ./
+
+      - name: Show build configuration
+        shell: bash
+        run: |
+          ls -l res/icon.ico res/tray-icon.ico flutter/assets/logo_light.png flutter/windows/runner/resources/app_icon.ico
+          if [ -n "$CONFIALTIVA_RENDEZVOUS_SERVER" ]; then
+            echo "Servidor: $CONFIALTIVA_RENDEZVOUS_SERVER (relay: ${CONFIALTIVA_RELAY_SERVER:-mesmo})"
+            if [ -z "$CONFIALTIVA_SERVER_KEY" ]; then echo "::warning::CONFIALTIVA_SERVER_KEY vazio: o cliente nao vai validar a chave do servidor"; fi
+          else
+            echo "::notice::Sem servidor proprio definido: usando servidores publicos do RustDesk"
+          fi
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@ebc0426251bc40c7cd31162802432c68818ab8f0 # v2.0.9

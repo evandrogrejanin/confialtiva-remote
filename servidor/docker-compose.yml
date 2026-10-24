@@ -1,0 +1,33 @@
+# Servidor Confialtiva Remote (rendezvous hbbs + relay hbbr).
+# A chave publica fica em ./data/id_ed25519.pub apos o primeiro start.
+services:
+  hbbs:
+    container_name: confialtiva-hbbs
+    image: rustdesk/rustdesk-server:1.1.16
+    # -k _ : so aceita clientes que tenham a chave publica deste servidor
+    command: hbbs -k _
+    volumes:
+      - ./data:/root
+    network_mode: host
+    depends_on:
+      - hbbr
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "10"
+
+  hbbr:
+    container_name: confialtiva-hbbr
+    image: rustdesk/rustdesk-server:1.1.16
+    command: hbbr -k _
+    volumes:
+      - ./data:/root
+    network_mode: host
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "10"
