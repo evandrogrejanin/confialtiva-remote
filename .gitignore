@@ -16,6 +16,7 @@ cert.pfx
 *.bak
 *png
 *svg
+!branding/*.svg
 *jpg
 sciter.dll
 **pdb
