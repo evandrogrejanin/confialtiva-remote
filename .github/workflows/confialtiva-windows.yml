@@ -60,6 +60,8 @@ jobs:
             flutter/assets/logo.png
             flutter/assets/logo_light.png
             flutter/assets/logo_dark.png
+            res/msi/Package/Resources/WixUIBannerBmp.bmp
+            res/msi/Package/Resources/WixUIDialogBmp.bmp
 
   build-RustDeskTempTopMostWindow:
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
@@ -234,13 +236,34 @@ jobs:
           popd
           mkdir -p ./SignOutput
           mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/${{ env.APP_EXE }}-${{ env.VERSION }}-x64.exe
-          sha256sum ./SignOutput/*.exe
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce # v2
+
+      - name: Build msi
+        run: |
+          pushd ./res/msi
+          python preprocess.py -d ../../rustdesk --app-name ${{ env.APP_EXE }} -m "Confialtiva"
+          # preprocess.py rewrites the stock RustDesk privacy policy by name substitution;
+          # ship our own text, which also keeps the AGPL attribution intact.
+          Copy-Item ../../branding/License.rtf ./Package/License.rtf -Force
+          nuget restore msi.sln
+          msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
+          $msi = Get-ChildItem ./Package/bin/*/Release/en-us/Package.msi | Select-Object -First 1
+          popd
+          mv $msi.FullName ./SignOutput/${{ env.APP_EXE }}-${{ env.VERSION }}-x64.msi
+
+      - name: Checksums
+        shell: bash
+        run: |
+          cd SignOutput
+          sha256sum * | tee SHA256SUMS.txt
 
       - name: Upload installer
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ConfialtivaRemote-windows-x64
-          path: ./SignOutput/*.exe
+          path: ./SignOutput/*
 
       - name: Publish test release
         shell: bash
@@ -249,9 +272,9 @@ jobs:
         run: |
           TAG="${{ inputs.release-tag }}"
           if [ -z "$TAG" ]; then TAG="teste-${{ github.run_number }}"; fi
-          gh release create "$TAG" ./SignOutput/*.exe \
+          gh release create "$TAG" ./SignOutput/* \
             --repo "${{ github.repository }}" \
             --target "${{ github.sha }}" \
             --prerelease \
             --title "Confialtiva Remote ${{ env.VERSION }} ($TAG)" \
-            --notes "Versao de teste para Windows x64. Executavel nao assinado: o Windows SmartScreen pode exibir um aviso. Baseado no RustDesk (AGPL-3.0); codigo-fonte neste repositorio."
+            --notes "Versao de teste para Windows x64: instalador MSI (recomendado) e executavel autoextraivel. Arquivos nao assinados: o Windows SmartScreen/Defender pode exibir um aviso. Hashes SHA-256 em SHA256SUMS.txt. Baseado no RustDesk (AGPL-3.0); codigo-fonte neste repositorio."

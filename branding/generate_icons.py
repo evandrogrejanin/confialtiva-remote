@@ -63,6 +63,28 @@ def main():
     dark_svg = logo_svg.replace(LOGO_TEXT_COLOR.encode(), b"#FFFFFF")
     render(dark_svg, height=LOGO_HEIGHT).save(out("flutter/assets/logo_dark.png"))
 
+    save_msi_bitmaps(icon_svg, logo_svg)
+
+
+def paste_centered(canvas, image, box):
+    left, top, right, bottom = box
+    x = left + (right - left - image.width) // 2
+    y = top + (bottom - top - image.height) // 2
+    canvas.paste(image, (x, y), image)
+
+
+def save_msi_bitmaps(icon_svg, logo_svg):
+    # WiX UI sizes: the banner sits behind the dialog title (text on the left), and the
+    # dialog bitmap fills the welcome/finish pages (text over its right 329px).
+    banner = Image.new("RGB", (493, 58), "white")
+    paste_centered(banner, render(icon_svg, 48, 48), (435, 0, 493, 58))
+    banner.save(out("res/msi/Package/Resources/WixUIBannerBmp.bmp"))
+
+    dialog = Image.new("RGB", (493, 312), "white")
+    paste_centered(dialog, render(icon_svg, 120, 120), (0, 0, 164, 220))
+    paste_centered(dialog, render(logo_svg, width=150), (0, 220, 164, 290))
+    dialog.save(out("res/msi/Package/Resources/WixUIDialogBmp.bmp"))
+
 
 if __name__ == "__main__":
     main()
