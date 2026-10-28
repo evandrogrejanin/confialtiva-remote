@@ -7,6 +7,8 @@ O servidor tem dois serviços:
 
 Todo o tráfego entre técnico e cliente é criptografado de ponta a ponta. O servidor não vê a tela nem os arquivos.
 
+> **Servidor Windows (VM na empresa):** siga o guia [windows/README.md](windows/README.md). Este documento cobre o VPS Linux, mas as seções 5 (gerar o app) e 6.3 (testes no app) valem para os dois.
+
 ## 1. Contratar o servidor
 
 | Item | Recomendação |
