@@ -14,7 +14,8 @@ if [ "$(id -u)" -ne 0 ]; then
   echo "Execute com sudo: sudo bash instalar.sh <IP_DO_ADMINISTRADOR>"; exit 1
 fi
 
-CURRENT_IP="${SSH_CLIENT%% *}"
+CURRENT_IP="${SSH_CLIENT:-}"
+CURRENT_IP="${CURRENT_IP%% *}"
 if [ -n "$ADMIN_IP" ] && [ -n "$CURRENT_IP" ] && [[ "$ADMIN_IP" != */* ]] && [ "$CURRENT_IP" != "$ADMIN_IP" ]; then
   echo "Voce esta conectado de $CURRENT_IP, mas informou $ADMIN_IP."
   echo "O firewall bloquearia esta sessao SSH. Confira o IP e rode de novo."
