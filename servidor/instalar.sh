@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Instala o servidor Confialtiva Remote em Ubuntu 22.04/24.04.
 # Uso: sudo bash instalar.sh <IP_DO_ADMINISTRADOR>
-#   IP_DO_ADMINISTRADOR: IP publico de onde a TI acessa o SSH (ex.: IP fixo do escritorio).
+#   IP_DO_ADMINISTRADOR: IP ou rede (CIDR) de onde a TI acessa o SSH
+#   (ex.: IP fixo do escritorio, ou a rede interna 172.18.2.0/23 numa VM local).
 #   Sem ele o SSH fica aberto para qualquer IP (protegido apenas pelo fail2ban).
 set -euo pipefail
 
@@ -14,7 +15,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 CURRENT_IP="${SSH_CLIENT%% *}"
-if [ -n "$ADMIN_IP" ] && [ -n "$CURRENT_IP" ] && [ "$CURRENT_IP" != "$ADMIN_IP" ]; then
+if [ -n "$ADMIN_IP" ] && [ -n "$CURRENT_IP" ] && [[ "$ADMIN_IP" != */* ]] && [ "$CURRENT_IP" != "$ADMIN_IP" ]; then
   echo "Voce esta conectado de $CURRENT_IP, mas informou $ADMIN_IP."
   echo "O firewall bloquearia esta sessao SSH. Confira o IP e rode de novo."
   exit 1
