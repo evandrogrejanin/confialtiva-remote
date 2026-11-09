@@ -18,6 +18,22 @@ Cliente (internet) ──► remoto.confialtiva.com.br ──► IP público da 
 | Rede | De preferência numa **DMZ ou VLAN separada**, sem acesso à rede interna. Se ela for invadida, o atacante não chega aos outros servidores |
 | Função | Dedicada. Não use um controlador de domínio, servidor de arquivos ou de banco de dados |
 
+### Conferir a VM pelo Hyper-V (mesmo desligada)
+
+No **host Hyper-V**, abra o PowerShell como Administrador e rode:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\validar-vm-hyperv.ps1 -VMName "NOME DA VM"
+```
+
+Para rodar a partir de outro computador, use também `-ComputerName NOME-DO-HOST`. Isso exige permissão de administrador do Hyper-V no host.
+
+O script confere:
+- **Recursos:** vCPU, memória e disco.
+- **Inicialização:** se a VM **liga sozinha com o host**. Sem isso, depois de uma queda de energia ninguém consegue conectar.
+- **Rede:** se a placa está num **switch Externo** e em qual **VLAN**, além do DHCP guard e do Router guard.
+- **Segurança:** Secure Boot, sincronização de horário e checkpoints.
+
 ## 2. Descobrir se a empresa tem IP público fixo
 
 1. Na VM, abra o PowerShell e rode o comando abaixo. Ele mostra o IP público de saída da empresa:
