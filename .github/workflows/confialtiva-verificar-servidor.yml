@@ -1,4 +1,8 @@
-# Testa o servidor Confialtiva Remote a partir da internet (como um cliente externo veria).
+# Verifica o servidor Confialtiva Remote a partir da internet, FORA do Brasil.
+# O firewall da empresa so aceita conexoes de IPs do Brasil, e os runners do GitHub
+# ficam fora do pais: daqui, TODAS as portas devem aparecer fechadas. Se alguma
+# abrir, a restricao por pais foi removida ou outra porta foi exposta.
+# A disponibilidade a partir do Brasil e testada com RUST\TESTE-CONFIALTIVA-REMOTE.cmd.
 name: Confialtiva Remote - Verificar servidor
 
 on:
@@ -15,17 +19,18 @@ jobs:
     env:
       SERVIDOR: ${{ vars.CONFIALTIVA_RENDEZVOUS_SERVER }}
     steps:
-      - name: Portas
+      - name: Portas (vistas de fora do Brasil)
         run: |
           set -u
           falhou=0
           echo "Servidor: $SERVIDOR"
           echo "DNS: $(getent hosts "$SERVIDOR" | awk '{print $1}')"
-          echo "Devem estar ABERTAS:"
+          echo "Origem deste teste: runner do GitHub (fora do Brasil)"
+          echo "Portas do Confialtiva Remote (devem estar BLOQUEADAS pela restricao por pais):"
           for p in 21115 21116 21117; do
-            if nc -z -w 5 "$SERVIDOR" $p; then echo "  [OK]    TCP $p aberta"; else echo "  [FALHA] TCP $p fechada"; falhou=1; fi
+            if nc -z -w 5 "$SERVIDOR" $p; then echo "  [FALHA] TCP $p aberta para fora do Brasil: restricao por pais desativada?"; falhou=1; else echo "  [OK]    TCP $p bloqueada"; fi
           done
-          echo "Devem estar FECHADAS (servidor de acesso remoto):"
+          echo "Portas que nunca devem abrir:"
           for p in 22 21114 21118 21119; do
             if nc -z -w 3 "$SERVIDOR" $p; then echo "  [FALHA] TCP $p aberta"; falhou=1; else echo "  [OK]    TCP $p fechada"; fi
           done
@@ -33,6 +38,5 @@ jobs:
           for p in 80 443 445 3389 3306 5432 8080; do
             if nc -z -w 3 "$SERVIDOR" $p; then echo "  [AVISO] TCP $p aberta: confirme com a TI que NAO vai para a VM do Confialtiva Remote"; else echo "  [OK]    TCP $p fechada"; fi
           done
-          echo "UDP 21116: este teste nao confirma UDP; veja o log do hbbs ou o status 'Pronto' no app."
           if [ $falhou = 1 ]; then echo "::error::RESULTADO: reprovado"; exit 1; fi
           echo "RESULTADO: aprovado"
