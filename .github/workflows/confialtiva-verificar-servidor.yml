@@ -1,0 +1,38 @@
+# Testa o servidor Confialtiva Remote a partir da internet (como um cliente externo veria).
+name: Confialtiva Remote - Verificar servidor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 11 * * 1-5" # dias uteis, 08:17 (horario de Brasilia)
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-22.04
+    env:
+      SERVIDOR: ${{ vars.CONFIALTIVA_RENDEZVOUS_SERVER }}
+    steps:
+      - name: Portas
+        run: |
+          set -u
+          falhou=0
+          echo "Servidor: $SERVIDOR"
+          echo "DNS: $(getent hosts "$SERVIDOR" | awk '{print $1}')"
+          echo "Devem estar ABERTAS:"
+          for p in 21115 21116 21117; do
+            if nc -z -w 5 "$SERVIDOR" $p; then echo "  [OK]    TCP $p aberta"; else echo "  [FALHA] TCP $p fechada"; falhou=1; fi
+          done
+          echo "Devem estar FECHADAS (servidor de acesso remoto):"
+          for p in 22 21114 21118 21119; do
+            if nc -z -w 3 "$SERVIDOR" $p; then echo "  [FALHA] TCP $p aberta"; falhou=1; else echo "  [OK]    TCP $p fechada"; fi
+          done
+          echo "Outras portas no mesmo IP publico (podem ser servicos legitimos da empresa):"
+          for p in 80 443 445 3389 3306 5432 8080; do
+            if nc -z -w 3 "$SERVIDOR" $p; then echo "  [AVISO] TCP $p aberta: confirme com a TI que NAO vai para a VM do Confialtiva Remote"; else echo "  [OK]    TCP $p fechada"; fi
+          done
+          echo "UDP 21116: este teste nao confirma UDP; veja o log do hbbs ou o status 'Pronto' no app."
+          if [ $falhou = 1 ]; then echo "::error::RESULTADO: reprovado"; exit 1; fi
+          echo "RESULTADO: aprovado"
